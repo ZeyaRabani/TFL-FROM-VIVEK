@@ -1,15 +1,16 @@
-# Fifteen
+# Gimmee
 
-Hackathon MVP: detect delayed trains (SWR, Southern, Southeastern) and generate / auto-submit Delay Repay claims under the DR15 ruleset — including TfL contactless journey proof for PAYG.
+Travel-compensation prototype for delayed trains and British Airways flight-claim preparation.
 
 ## Features
 
 - **Clerk auth** — multi-user accounts
 - **Manual report flow** — search Realtime Trains, pick a service, enter ticket details
 - **DR15 eligibility engine** — single / return / contactless / season
-- **Automated claims** — on report submit (with consent): durable Workflow → TfL proof (contactless) → TOC portal submit
-- **TfL proof** — contactless PAYG evidence from Contactless & Oyster account
-- **Claim summaries** — copy-ready text + links to operator claim portals (manual fallback)
+- **TfL connection prototype** — a browser-local linked-account state for demonstrating the contactless journey-proof flow
+- **Daytona verification** — a contactless claim creates a prototype journey-proof record, checks it in an isolated sandbox, then deletes the sandbox
+- **Flight claims** — British Airways evidence form and an optional AI-backed readiness review
+- **Claim summaries** — copy-ready text + links to operator claim portals
 - **Dashboard** — delay feed + open compensation total + automation status
 
 ## Setup
@@ -52,8 +53,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-1. Configure automation at [/settings](http://localhost:3000/settings) (consent + TfL/TOC logins)
-2. Report a delay at [/report](http://localhost:3000/report) — with consent, auto-submit starts immediately
+1. Link the prototype TfL account at [/settings](http://localhost:3000/settings).
+2. Report a delay at [/report](http://localhost:3000/report). For a contactless journey, Gimmee runs the Daytona proof-check step when the claim is submitted.
 
 Without RTT credentials, the report wizard uses **demo mock services** (27-minute delay).
 
@@ -74,6 +75,21 @@ Without RTT credentials, the report wizard uses **demo mock services** (27-minut
 | `MOLLIE_API_KEY` | Mollie API key for 20% success fee checkout |
 | `MOLLIE_CHARITY_ORG_ID` | Connected Mollie org receiving the 5% charity split |
 | `NEXT_PUBLIC_APP_URL` | Public base URL for Mollie redirect + webhook |
+| `DAYTONA_API_KEY` | Server-side API key used to create the temporary evidence-verification sandbox |
+| `DAYTONA_TARGET` | Optional Daytona region/target override |
+| `OPENAI_API_KEY` | Optional server-side key for the Flight Claim Agent; without it the agent uses a local demo review |
+
+## Daytona sandbox verification
+
+For a contactless train claim, Gimmee automatically creates a small **prototype journey-proof record** from the selected journey. If `DAYTONA_API_KEY` is configured, the server:
+
+1. Creates an ephemeral, network-blocked Daytona sandbox.
+2. Uploads the generated proof record and checks that it is non-empty.
+3. Deletes the sandbox and its temporary file.
+
+The contactless-claim screen makes the result visible: it shows either **“Daytona sandbox verification completed”** or an explicit prototype fallback if Daytona is unavailable.
+
+This is a sandbox/file-integrity check only. It does **not** access a real TfL Contactless & Oyster account or retrieve private TfL journey data. A production connection would require an approved TfL integration.
 
 ### Deploy to Vercel
 
