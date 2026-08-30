@@ -8,7 +8,7 @@ import {
 } from "@/lib/fees/success-fee";
 import { formatPounds } from "@/lib/eligibility/dr15";
 
-/** Compact payout economics: you receive / Fifteen / charity. */
+/** Compact payout economics: you receive / Gimme! / charity. */
 export function PayoutBreakdown({
   split,
   compact,
@@ -19,7 +19,7 @@ export function PayoutBreakdown({
   if (!split || split.compensationAmountPence <= 0) {
     return (
       <p className="text-sm text-ink-muted">
-        You keep {Math.round(USER_PAYOUT_RATE * 100)}% of Delay Repay. Fifteen
+        You keep {Math.round(USER_PAYOUT_RATE * 100)}% of Delay Repay. Gimme!
         keeps {Math.round(COMMISSION_RATE * 100)}%, and{" "}
         {Math.round(CHARITY_RATE * 100)}% goes to charity.
       </p>
@@ -33,7 +33,7 @@ export function PayoutBreakdown({
           You {formatPounds(split.userPayoutPence)}
         </span>
         {" · "}
-        <span>Fifteen {formatPounds(split.commissionPence)}</span>
+        <span>Gimme! {formatPounds(split.commissionPence)}</span>
         {" · "}
         <span>Charity {formatPounds(split.charityPence)}</span>
       </p>
@@ -43,7 +43,7 @@ export function PayoutBreakdown({
   return (
     <div className="border border-line bg-paper-2 px-4 py-4">
       <p className="mono text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-        After Fifteen receives Delay Repay
+        After Gimme! receives Delay Repay
       </p>
       <dl className="mt-3 grid gap-3 sm:grid-cols-3">
         <div>
@@ -56,7 +56,7 @@ export function PayoutBreakdown({
         </div>
         <div>
           <dt className="mono text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-            Fifteen keeps ({Math.round(COMMISSION_RATE * 100)}%)
+            Gimme! keeps ({Math.round(COMMISSION_RATE * 100)}%)
           </dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums text-ink">
             {formatPounds(split.commissionPence)}

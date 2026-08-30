@@ -30,12 +30,15 @@ function resolveConnectionString(): string {
 
 function createClient() {
   const connectionString = resolveConnectionString();
+  const hostname = new URL(connectionString).hostname;
+  const isLocalDatabase = hostname === "localhost" || hostname === "127.0.0.1";
   const pool =
     globalForPrisma.pgPool ??
     new Pool({
       connectionString,
       // Supabase pooler presents a cert that Node may not trust by default.
-      ssl: { rejectUnauthorized: false },
+      // The local Supabase stack does not expose TLS on its Postgres port.
+      ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
       max: 5,
     });
   globalForPrisma.pgPool = pool;

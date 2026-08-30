@@ -42,9 +42,8 @@ export function SettingsForm() {
     portalEmail: "",
     password: "",
   });
-
-  const [tflEmail, setTflEmail] = useState<string | null>(null);
-  const [tflForm, setTflForm] = useState({ portalEmail: "", password: "" });
+  const [tflEmail, setTflEmail] = useState("");
+  const [tflLinked, setTflLinked] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,7 +70,11 @@ export function SettingsForm() {
         });
       }
       setOperatorCreds(data.operatorCredentials ?? []);
-      setTflEmail(data.tflCredential?.portalEmail ?? null);
+      const demoTflEmail = window.localStorage.getItem("gimme-demo-tfl-email");
+      if (demoTflEmail) {
+        setTflEmail(demoTflEmail);
+        setTflLinked(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
@@ -138,27 +141,13 @@ export function SettingsForm() {
     }
   }
 
-  async function saveTflCred(e: React.FormEvent) {
+  function linkTflDemo(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
+    if (!tflEmail.trim()) return;
+    window.localStorage.setItem("gimme-demo-tfl-email", tflEmail.trim());
+    setTflLinked(true);
+    setMessage("TfL account linked for this Gimme! prototype.");
     setError(null);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "tfl", ...tflForm }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Save failed");
-      setMessage("TfL contactless login saved.");
-      setTflForm((f) => ({ ...f, password: "" }));
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
-    } finally {
-      setSaving(false);
-    }
   }
 
   if (loading) {
@@ -184,7 +173,7 @@ export function SettingsForm() {
           Payout bank (Mollie)
         </h2>
         <p className="text-sm text-ink-muted">
-          Connect the UK bank account where Fifteen should send your 75% share
+          Connect the UK bank account where Gimme! should send your 75% share
           after we receive Delay Repay.
         </p>
         {profile.mollieCustomerId ? (
@@ -253,40 +242,40 @@ export function SettingsForm() {
         </button>
       </form>
 
-      <form
-        onSubmit={saveTflCred}
-        className="space-y-4 border border-line bg-[var(--card)] p-6"
-      >
+      <form onSubmit={linkTflDemo} className="space-y-4 border border-sky-200 bg-sky-50 p-6">
         <h2 className="display text-xl font-bold uppercase tracking-wide">
-          TfL contactless login
+          TfL contactless account
         </h2>
-        <p className="text-sm text-ink-muted">
-          Used to download journey proof when you submit a contactless claim.
-          {tflEmail ? (
-            <span className="mono mt-1 block text-signal">
-              Saved account: {tflEmail}
-            </span>
-          ) : null}
+        <p className="mono text-xs font-semibold uppercase tracking-[0.12em] text-sky-800">
+          {tflLinked ? "Linked · prototype mode" : "Prototype connection"}
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <p className="text-sm leading-relaxed text-sky-950">
+          Link an account to demonstrate the journey-proof flow in Gimme! This
+          prototype does not contact TfL or collect a TfL password.
+        </p>
+        {tflLinked ? (
+          <div className="border border-sky-200 bg-white p-3">
+            <p className="mono text-xs font-semibold text-signal">✓ Account linked</p>
+            <p className="mt-1 text-sm text-ink-muted">{tflEmail}</p>
+            <p className="mt-1 mono text-[10px] uppercase tracking-[0.1em] text-ink-muted">
+              Demo status saved in this browser
+            </p>
+          </div>
+        ) : (
           <Field
-            label="Email"
-            value={tflForm.portalEmail}
-            onChange={(v) => setTflForm((f) => ({ ...f, portalEmail: v }))}
+            label="TfL account email"
+            type="email"
+            value={tflEmail}
+            onChange={setTflEmail}
+            required
+            autoComplete="email"
           />
-          <Field
-            label="Password"
-            type="password"
-            value={tflForm.password}
-            onChange={(v) => setTflForm((f) => ({ ...f, password: v }))}
-          />
-        </div>
+        )}
         <button
           type="submit"
-          disabled={saving}
           className="board-btn board-btn-primary mono text-xs uppercase tracking-[0.14em]"
         >
-          Save TfL login
+          {tflLinked ? "TfL account linked" : "Link TfL account"}
         </button>
       </form>
 

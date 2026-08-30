@@ -18,7 +18,7 @@ export function SiteHeader({ compact = false }: { compact?: boolean }) {
           href="/"
           className="display text-xl font-bold uppercase tracking-[0.14em] text-ink transition hover:text-rail sm:text-2xl"
         >
-          Fifteen
+          Gimmee
         </Link>
         <nav className="flex items-center gap-1.5 text-sm sm:gap-2">
           <Show when="signed-in">

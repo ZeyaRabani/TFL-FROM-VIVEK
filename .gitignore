@@ -48,3 +48,6 @@ next-env.d.ts
 /prisma/*.db-journal
 /.swc
 /data
+
+# clerk configuration (can include secrets)
+/.clerk/

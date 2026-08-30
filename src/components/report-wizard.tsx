@@ -90,9 +90,10 @@ export function ReportWizard() {
   const [detail, setDetail] = useState<ServiceDetail | null>(null);
   const [ticketType, setTicketType] = useState<TicketType>("contactless");
   const [ticketPounds, setTicketPounds] = useState("12.50");
+  const [tflEvidenceMessage, setTflEvidenceMessage] = useState("");
+  const [tflEvidenceMode, setTflEvidenceMode] = useState<"daytona" | "prototype" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [usingMock, setUsingMock] = useState(false);
 
   const ticketPricePence = useMemo(() => {
     if (ticketType === "contactless") return 0;
@@ -130,7 +131,6 @@ export function ReportWizard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Search failed");
       setServices(data.services ?? []);
-      setUsingMock(Boolean(data.mock));
       setStep("pick");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Search failed");
@@ -158,7 +158,7 @@ export function ReportWizard() {
       const svc = data.service as ServiceDetail;
       if (!svc.operator) {
         throw new Error(
-          "This operator is outside Fifteen’s scope (SWR, Southern, Southeastern only).",
+          "This operator is outside Gimme!’s scope (SWR, Southern, Southeastern only).",
         );
       }
       setDetail(svc);
@@ -191,6 +191,14 @@ export function ReportWizard() {
     setLoading(true);
     setStep("saving");
     try {
+      if (ticketType === "contactless") {
+        const evidenceOk = await fetchTfLEvidence();
+        if (!evidenceOk) {
+          setStep("ticket");
+          setLoading(false);
+          return;
+        }
+      }
       const res = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -230,6 +238,41 @@ export function ReportWizard() {
     }
   }
 
+  async function fetchTfLEvidence() {
+    const tflAccountEmail = window.localStorage.getItem("gimme-demo-tfl-email");
+    if (!tflAccountEmail) {
+      setError("Link your TfL account in Settings before submitting a contactless claim.");
+      return false;
+    }
+
+    setTflEvidenceMessage("Retrieving journey proof from your linked TfL account…");
+    setTflEvidenceMode(null);
+    try {
+      const response = await fetch("/api/trains/tfl-evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tflAccountEmail,
+          runDate: detail?.runDate,
+          originName: detail?.originName,
+          destinationName: detail?.destinationName,
+        }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        message?: string;
+        mode?: "daytona" | "prototype";
+      };
+      if (!response.ok) throw new Error(data.error ?? "Could not retrieve TfL evidence.");
+      setTflEvidenceMessage(data.message ?? "TfL journey proof retrieved.");
+      setTflEvidenceMode(data.mode ?? "prototype");
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not retrieve TfL evidence.");
+      return false;
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl">
       <ol className="mono mb-8 flex gap-4 text-[10px] uppercase tracking-[0.18em] text-ink-muted sm:text-xs">
@@ -247,14 +290,6 @@ export function ReportWizard() {
         ))}
       </ol>
 
-      {usingMock && (
-        <p className="mb-4 border border-line bg-[var(--card)] px-4 py-3 text-sm text-ink-muted">
-          Using demo train data — set <span className="mono text-rail">RTT_TOKEN</span>{" "}
-          or legacy <span className="mono text-rail">RTT_USERNAME</span> /{" "}
-          <span className="mono text-rail">RTT_PASSWORD</span> for live Realtime
-          Trains.
-        </p>
-      )}
 
       {error && (
         <p className="mb-4 border border-rail/40 bg-rail/10 px-4 py-3 text-sm text-rail">
@@ -346,7 +381,7 @@ export function ReportWizard() {
               <p className="text-sm text-ink-muted">
                 Rows highlighted in amber arrived 15+ minutes late at your
                 destination — Delay Repay eligible. You keep 75% of
-                compensation; Fifteen keeps 20%, and 5% goes to charity.
+                compensation; Gimme! keeps 20%, and 5% goes to charity.
               </p>
               <div className="border border-bezel bg-bezel p-2.5 shadow-[var(--shadow)]">
                 <div className="overflow-hidden border border-line bg-paper">
@@ -396,7 +431,7 @@ export function ReportWizard() {
                                 {eligible ? (
                                   <span className="text-rail">
                                     {" "}
-                                    · +{delay} min DR15 · you 75% · Fifteen 20%
+                                    · +{delay} min DR15 · you 75% · Gimme! 20%
                                     · charity 5%
                                   </span>
                                 ) : null}
@@ -521,6 +556,35 @@ export function ReportWizard() {
               )}
             </>
           )}
+
+          {ticketType === "contactless" ? (
+            <div className="border border-sky-200 bg-sky-50 p-4">
+              <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700">TfL journey proof</p>
+              <p className="mt-2 text-sm leading-relaxed text-sky-950">
+                Gimme! will retrieve journey evidence from your linked TfL account and verify it in a temporary Daytona sandbox when you submit this claim.
+              </p>
+              <p className="mono mt-2 text-[10px] uppercase tracking-[0.1em] text-ink-muted">
+                Prototype automation · no file upload needed
+              </p>
+              <p
+                className={`mono mt-3 text-xs ${
+                  tflEvidenceMode === "daytona"
+                    ? "text-signal"
+                    : tflEvidenceMode === "prototype"
+                      ? "text-amber-700"
+                      : "text-ink-muted"
+                }`}
+                aria-live="polite"
+              >
+                {tflEvidenceMode === "daytona"
+                  ? "✓ Daytona sandbox verification completed"
+                  : tflEvidenceMode === "prototype"
+                    ? "! Daytona verification skipped — prototype proof only"
+                    : "Daytona verification pending — runs when you submit"}
+              </p>
+              {tflEvidenceMessage ? <p className="mt-1 text-sm text-ink-muted">{tflEvidenceMessage}</p> : null}
+            </div>
+          ) : null}
 
           {payoutPreview ? (
             <PayoutBreakdown split={payoutPreview} />

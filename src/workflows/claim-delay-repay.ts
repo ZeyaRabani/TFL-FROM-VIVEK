@@ -1,15 +1,9 @@
 import { getWorkflowMetadata } from "workflow";
 import { prisma } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto/secrets";
-import { buildClaimSummary } from "@/lib/claims/summary";
-import { saveEvidenceFile, readEvidenceFile } from "@/lib/evidence/store";
-import {
-  calculateCompensation,
-  type Operator,
-  type TicketType,
-} from "@/lib/eligibility/dr15";
-import { getDelayRepayPortal, getTflProofFetcher } from "@/lib/portals";
-import { parseTflFareFromProofBytes } from "@/lib/portals/tfl-fare";
+import { readEvidenceFile } from "@/lib/evidence/store";
+import { type Operator, type TicketType } from "@/lib/eligibility/dr15";
+import { getDelayRepayPortal } from "@/lib/portals";
 import { getServiceDelay } from "@/lib/rtt/client";
 import { ensureSuccessFeeForEvent } from "@/lib/mollie/create-success-fee-payment";
 
@@ -25,7 +19,6 @@ async function loadContext(input: ClaimWorkflowInput) {
     where: { id: input.userId },
     include: {
       claimProfile: true,
-      tflCredential: true,
       operatorCredentials: true,
     },
   });
@@ -44,12 +37,6 @@ async function loadContext(input: ClaimWorkflowInput) {
     userId: user.id,
     userEmail: user.email,
     profile: user.claimProfile,
-    tflCredential: user.tflCredential
-      ? {
-          email: user.tflCredential.portalEmail,
-          password: decryptSecret(user.tflCredential.passwordCiphertext),
-        }
-      : null,
     operatorCredentials: user.operatorCredentials.map((c) => ({
       operator: c.operator,
       email: c.portalEmail,
@@ -107,7 +94,7 @@ async function verifyDelay(eventId: string) {
   return { ok: true as const, delayMinutes: event.delayMinutes };
 }
 
-async function fetchEvidence(eventId: string, tflCred: { email: string; password: string } | null) {
+async function fetchEvidence(eventId: string) {
   "use step";
 
   const event = await prisma.delayEvent.findUniqueOrThrow({
@@ -119,140 +106,15 @@ async function fetchEvidence(eventId: string, tflCred: { email: string; password
     return { ok: true as const, skipped: true as const };
   }
 
-  if (!tflCred) {
-    await prisma.delayEvent.update({
-      where: { id: eventId },
-      data: {
-        status: "needs_attention",
-        submitError: "Contactless claim requires TfL credentials in settings.",
-      },
-    });
-    return { ok: false as const, skipped: false as const };
-  }
-
-  await prisma.delayEvent.update({
-    where: { id: eventId },
-    data: { status: "fetching_proof", submitError: null },
-  });
-
-  const fetcher = getTflProofFetcher();
-  const result = await fetcher.fetchJourneyProof({
-    credentials: tflCred,
-    runDate: event.runDate,
-    originCrs: event.originCrs,
-    originName: event.originName,
-    destinationCrs: event.destinationCrs,
-    destinationName: event.destinationName,
-    scheduledArrival: event.scheduledArrival,
-    actualArrival: event.actualArrival,
-  });
-
-  if (!result.ok || !result.fileBytes) {
-    await prisma.delayEvent.update({
-      where: { id: eventId },
-      data: {
-        status: "needs_attention",
-        submitError: result.error ?? "Failed to fetch TfL journey proof.",
-      },
-    });
-    return { ok: false as const, skipped: false as const, retryable: result.retryable };
-  }
-
-  // Compensation base must come from the TfL journey charge on the proof —
-  // never the user-entered estimate.
-  const farePence =
-    result.farePence ??
-    parseTflFareFromProofBytes(result.fileBytes, result.mimeType);
-
-  if (farePence == null || farePence <= 0) {
-    await prisma.delayEvent.update({
-      where: { id: eventId },
-      data: {
-        status: "needs_attention",
-        submitError:
-          "Could not read journey charge from TfL proof — compensation needs the PAYG fare.",
-        evidencePath: undefined,
-      },
-    });
-    // Still save evidence for debugging
-    const saved = await saveEvidenceFile({
-      userId: event.userId,
-      delayEventId: event.id,
-      bytes: result.fileBytes,
-      mimeType: result.mimeType ?? "application/pdf",
-    });
-    await prisma.delayEvent.update({
-      where: { id: eventId },
-      data: {
-        evidencePath: saved.relativePath,
-        evidenceMime: saved.mimeType,
-      },
-    });
-    return { ok: false as const, skipped: false as const };
-  }
-
-  const saved = await saveEvidenceFile({
-    userId: event.userId,
-    delayEventId: event.id,
-    bytes: result.fileBytes,
-    mimeType: result.mimeType ?? "application/pdf",
-  });
-
-  const compensation = calculateCompensation({
-    operator: event.operator as Operator,
-    delayMinutes: event.delayMinutes,
-    ticketPricePence: farePence,
-    ticketType: "contactless",
-  });
-
-  if (!compensation.eligible) {
-    await prisma.delayEvent.update({
-      where: { id: eventId },
-      data: {
-        status: "failed",
-        submitError: "Not eligible after applying TfL journey fare.",
-        contactlessFarePence: farePence,
-        ticketPricePence: farePence,
-        evidencePath: saved.relativePath,
-        evidenceMime: saved.mimeType,
-      },
-    });
-    return { ok: false as const, skipped: false as const };
-  }
-
-  const claimSummary = buildClaimSummary({
-    operator: event.operator as Operator,
-    originName: event.originName,
-    destinationName: event.destinationName,
-    runDate: event.runDate,
-    scheduledArrival: event.scheduledArrival,
-    actualArrival: event.actualArrival,
-    delayMinutes: event.delayMinutes,
-    ticketType: "contactless",
-    ticketPricePence: farePence,
-    compensationTier: compensation.tier,
-    compensationAmountPence: compensation.compensationAmountPence,
-  });
-
   await prisma.delayEvent.update({
     where: { id: eventId },
     data: {
-      evidencePath: saved.relativePath,
-      evidenceMime: saved.mimeType,
-      tflJourneyId: result.tflJourneyId,
-      contactlessFarePence: farePence,
-      ticketPricePence: farePence,
-      compensationTier: compensation.tier,
-      compensationAmountPence: compensation.compensationAmountPence,
-      claimSummary,
-      status: "eligible",
+      status: "needs_attention",
+      submitError:
+        "Download the relevant journey proof from TfL's official account and add it to your claim. Gimme! does not access TfL accounts.",
     },
   });
-
-  console.log(
-    `[claim workflow] evidence saved for ${eventId} tflFare=${farePence} compensation=${compensation.compensationAmountPence}`,
-  );
-  return { ok: true as const, skipped: false as const };
+  return { ok: false as const, skipped: false as const, retryable: false };
 }
 
 async function submitClaim(
@@ -386,7 +248,7 @@ export async function claimDelayRepayWorkflow(input: ClaimWorkflowInput) {
     return { status: "failed" as const, eventId: ctx.eventId };
   }
 
-  const evidence = await fetchEvidence(ctx.eventId, ctx.tflCredential);
+  const evidence = await fetchEvidence(ctx.eventId);
   if (!evidence.ok) {
     return {
       status: "needs_attention" as const,

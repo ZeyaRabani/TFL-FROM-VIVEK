@@ -16,9 +16,9 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fifteen — Delay Repay for London commuters",
+  title: "Gimmee — Travel compensation made simple",
   description:
-    "Detect train delays and generate Delay Repay compensation claims for SWR, Southern, and Southeastern.",
+    "Find delayed journeys and claim the travel compensation you are owed.",
 };
 
 export default function RootLayout({

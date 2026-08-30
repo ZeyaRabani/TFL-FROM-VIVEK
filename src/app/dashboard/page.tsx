@@ -96,7 +96,7 @@ export default async function DashboardPage() {
                     {" · "}
                     {formatPounds(pendingPayoutPence)} pending
                     {pendingCount > 0 ? ` (${pendingCount})` : ""}
-                    . Your 75% share after Fifteen’s fee and charity.
+                    . Your 75% share after Gimme!’s fee and charity.
                   </p>
                 </div>
                 <div className="text-right">

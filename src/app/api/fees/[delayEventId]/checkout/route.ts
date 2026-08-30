@@ -8,7 +8,7 @@ export async function POST(_req: Request, { params }: Params) {
   return NextResponse.json(
     {
       error:
-        "Success-fee checkout is retired. Fifteen receives Delay Repay and pays you out. Use POST /api/fees/" +
+        "Success-fee checkout is retired. Gimme! receives Delay Repay and pays you out. Use POST /api/fees/" +
         delayEventId +
         "/payout after connecting a bank in Settings.",
     },

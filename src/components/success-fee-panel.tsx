@@ -37,7 +37,7 @@ export function SuccessFeePanel({
         Your payout
       </h2>
       <p className="mt-2 text-sm text-ink-muted">
-        Fifteen receives Delay Repay from the operator, keeps 20%, donates 5%
+        Gimme! receives Delay Repay from the operator, keeps 20%, donates 5%
         to charity, and pays 75% to your connected bank automatically.
       </p>
 

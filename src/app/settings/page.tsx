@@ -21,10 +21,10 @@ export default async function SettingsPage() {
             Auto Delay Repay
           </p>
           <p className="mt-2 text-sm leading-relaxed text-ink">
-            When you report a delay, Fifteen automatically fetches TfL journey
-            proof (if contactless) and submits the Delay Repay claim to the
-            operator on your behalf. We receive the operator payout, keep 20%,
-            donate 5% to charity, and pay 75% to your connected bank.
+            When you report a delay, Gimme! demonstrates the intended automated
+            journey-proof and Delay Repay flow. This local prototype does not
+            contact TfL or submit a real claim. We receive the operator payout,
+            keep 20%, donate 5% to charity, and pay 75% to your connected bank.
           </p>
         </div>
 

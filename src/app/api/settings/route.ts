@@ -34,15 +34,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [profile, operatorCredentials, tflCredential] = await Promise.all([
+  const [profile, operatorCredentials] = await Promise.all([
     prisma.claimProfile.findUnique({ where: { userId: user.id } }),
     prisma.operatorCredential.findMany({
       where: { userId: user.id },
       select: { operator: true, portalEmail: true, updatedAt: true },
-    }),
-    prisma.tflCredential.findUnique({
-      where: { userId: user.id },
-      select: { portalEmail: true, updatedAt: true },
     }),
   ]);
 
@@ -57,7 +53,6 @@ export async function GET() {
         }
       : null,
     operatorCredentials,
-    tflCredential,
   });
 }
 
@@ -161,29 +156,10 @@ export async function POST(req: Request) {
   }
 
   if (kind === "tfl") {
-    const parsed = z
-      .object({
-        portalEmail: z.string().email(),
-        password: z.string().min(1),
-      })
-      .safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-    }
-    const cred = await prisma.tflCredential.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
-        portalEmail: parsed.data.portalEmail,
-        passwordCiphertext: encryptSecret(parsed.data.password),
-      },
-      update: {
-        portalEmail: parsed.data.portalEmail,
-        passwordCiphertext: encryptSecret(parsed.data.password),
-      },
-      select: { portalEmail: true, updatedAt: true },
-    });
-    return NextResponse.json({ tflCredential: cred });
+    return NextResponse.json(
+      { error: "TfL credentials are not accepted. Use the official TfL account instead." },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json({ error: "Unknown kind" }, { status: 400 });
