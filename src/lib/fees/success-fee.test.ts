@@ -10,21 +10,21 @@ import {
 } from "./success-fee";
 
 describe("calculatePayoutSplit", () => {
-  it("on £10 DR: user £7.50, Fifteen £2, charity £0.50", () => {
+  it("on £10 DR: user keeps the full £10, no fee", () => {
     expect(calculatePayoutSplit(1000)).toEqual({
       compensationAmountPence: 1000,
-      userPayoutPence: 750,
-      platformFeePence: 250,
-      commissionPence: 200,
-      charityPence: 50,
+      userPayoutPence: 1000,
+      platformFeePence: 0,
+      commissionPence: 0,
+      charityPence: 0,
     });
   });
 
-  it("uses 75% user / 20% Fifteen / 5% charity", () => {
-    expect(USER_PAYOUT_RATE).toBe(0.75);
-    expect(COMMISSION_RATE).toBe(0.2);
-    expect(CHARITY_RATE).toBe(0.05);
-    expect(PLATFORM_FEE_RATE).toBe(0.25);
+  it("uses 100% user / 0% Fifteen / 0% charity (personal-use build)", () => {
+    expect(USER_PAYOUT_RATE).toBe(1);
+    expect(COMMISSION_RATE).toBe(0);
+    expect(CHARITY_RATE).toBe(0);
+    expect(PLATFORM_FEE_RATE).toBe(0);
   });
 
   it("parts always sum to compensation", () => {
@@ -42,9 +42,9 @@ describe("calculateSuccessFee (compat)", () => {
   it("maps to fee / commission / charity", () => {
     expect(calculateSuccessFee(1000)).toEqual({
       compensationAmountPence: 1000,
-      commissionPence: 200,
-      charityPence: 50,
-      totalFeePence: 250,
+      commissionPence: 0,
+      charityPence: 0,
+      totalFeePence: 0,
     });
   });
 });

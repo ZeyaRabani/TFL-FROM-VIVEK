@@ -96,7 +96,7 @@ export default async function DashboardPage() {
                     {" · "}
                     {formatPounds(pendingPayoutPence)} pending
                     {pendingCount > 0 ? ` (${pendingCount})` : ""}
-                    . Your 75% share after Gimme!’s fee and charity.
+                    . 100% of Delay Repay — no platform fee on this instance.
                   </p>
                 </div>
                 <div className="text-right">
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                     {formatPounds(charityPence)}
                   </p>
                   <p className="mt-2 text-sm text-ink-muted">
-                    5% of Delay Repay from these refunds.
+                    No charity split on this instance.
                   </p>
                 </div>
               </div>

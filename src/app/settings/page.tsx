@@ -23,8 +23,8 @@ export default async function SettingsPage() {
           <p className="mt-2 text-sm leading-relaxed text-ink">
             When you report a delay, Gimme! demonstrates the intended automated
             journey-proof and Delay Repay flow. This local prototype does not
-            contact TfL or submit a real claim. We receive the operator payout,
-            keep 20%, donate 5% to charity, and pay 75% to your connected bank.
+            contact TfL or submit a real claim. This is a personal instance —
+            you keep 100% of any Delay Repay compensation.
           </p>
         </div>
 

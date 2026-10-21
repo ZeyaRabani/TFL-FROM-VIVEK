@@ -37,8 +37,8 @@ export function SuccessFeePanel({
         Your payout
       </h2>
       <p className="mt-2 text-sm text-ink-muted">
-        Gimme! receives Delay Repay from the operator, keeps 20%, donates 5%
-        to charity, and pays 75% to your connected bank automatically.
+        Gimme! receives Delay Repay from the operator and pays 100% to your
+        connected bank automatically. No platform fee on this instance.
       </p>
 
       <div className="mt-4">

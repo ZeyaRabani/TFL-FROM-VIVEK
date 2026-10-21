@@ -1,9 +1,9 @@
-/** Passenger receives 75% of Delay Repay. */
-export const USER_PAYOUT_RATE = 0.75;
-/** Fifteen keeps 20% of Delay Repay. */
-export const COMMISSION_RATE = 0.2;
-/** Charity receives 5% of Delay Repay. */
-export const CHARITY_RATE = 0.05;
+/** Personal-use build: passenger keeps 100% of Delay Repay, no platform cut. */
+export const USER_PAYOUT_RATE = 1;
+/** No commission taken. */
+export const COMMISSION_RATE = 0;
+/** No charity split. */
+export const CHARITY_RATE = 0;
 /** Total deducted from compensation (commission + charity). */
 export const PLATFORM_FEE_RATE = COMMISSION_RATE + CHARITY_RATE;
 

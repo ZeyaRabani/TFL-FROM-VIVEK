@@ -173,8 +173,8 @@ export function SettingsForm() {
           Payout bank (Mollie)
         </h2>
         <p className="text-sm text-ink-muted">
-          Connect the UK bank account where Gimme! should send your 75% share
-          after we receive Delay Repay.
+          Connect the UK bank account where Gimme! should send your Delay
+          Repay compensation. Personal instance — no platform fee is taken.
         </p>
         {profile.mollieCustomerId ? (
           <p className="mono text-xs text-signal">
